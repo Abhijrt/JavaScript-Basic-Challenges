@@ -165,3 +165,224 @@ function randomColors() {
     all_buttons[i].classList.add(choices[randomNumber]);
   }
 }
+
+// Challenge 5 : Black Jack
+let blackjackGame = {
+  you: { spanScore: "#your-blackjack-score", div: "#your-box", score: 0 },
+  dealer: {
+    spanScore: "#dealer-blackjack-score",
+    div: "#dealer-box",
+    score: 0,
+  },
+  card: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "A", "K", "J", "Q"],
+  cardMap: {
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    A: [1, 11],
+    K: 10,
+    J: 10,
+    Q: 10,
+  },
+  wins: 0,
+  lossess: 0,
+  drew: 0,
+  isStand: false,
+  turnsOver: false,
+};
+
+const YOU = blackjackGame["you"];
+const DEALER = blackjackGame["dealer"];
+
+const hitSound = new Audio("./static/sounds/hitcash.wav");
+
+document
+  .querySelector("#backjack-hit-button")
+  .addEventListener("click", blackjackHit);
+
+document
+  .querySelector("#backjack-deal-button")
+  .addEventListener("click", blackjackDeal);
+
+document
+  .querySelector("#backjack-stand-button")
+  .addEventListener("click", dealerLogic);
+
+function blackjackHit() {
+  if (blackjackGame["isStand"] === false) {
+    let card = randomCard();
+    showCard(card, YOU);
+    updateScore(card, YOU);
+    showScore(YOU);
+  }
+}
+
+function showCard(card, activePlayer) {
+  if (activePlayer["score"] <= 21) {
+    var cardImage = document.createElement("img");
+    cardImage.setAttribute(
+      "height",
+      "100px",
+      "width",
+      "100px",
+      "padding",
+      "10px"
+    );
+    cardImage.src = `./static/images/${card}.png`;
+    document.querySelector(activePlayer["div"]).appendChild(cardImage);
+    hitSound.play();
+  }
+}
+
+function blackjackDeal() {
+  if (blackjackGame["turnsOver"] === true) {
+    blackjackGame["isStand"] = false;
+    var yourImages = document
+      .querySelector("#your-box")
+      .querySelectorAll("img");
+    for (let i = 0; i < yourImages.length; i++) {
+      yourImages[i].remove();
+    }
+    var dealerImages = document
+      .querySelector("#dealer-box")
+      .querySelectorAll("img");
+    for (let i = 0; i < dealerImages.length; i++) {
+      dealerImages[i].remove();
+    }
+    YOU["score"] = 0;
+    DEALER["score"] = 0;
+    document.querySelector("#your-blackjack-score").textContent = 0;
+    document.querySelector("#dealer-blackjack-score").textContent = 0;
+    document.querySelector("#your-blackjack-score").style.color = "white";
+    document.querySelector("#dealer-blackjack-score").style.color = "white";
+    document.querySelector("#blackjack-result").textContent = "Let's Play";
+    document.querySelector("#blackjack-result").style.color = "black";
+    blackjackGame["turnsOver"] = true;
+  }
+}
+
+function randomCard() {
+  let randomIndex = Math.floor(Math.random() * 13);
+  return blackjackGame["card"][randomIndex];
+}
+
+function updateScore(card, activePlayer) {
+  if (card === "A") {
+    if (activePlayer["score"] + blackjackGame["cardMap"][card][1] <= 21) {
+      activePlayer["score"] += blackjackGame["cardMap"][card][1];
+    } else {
+      activePlayer["score"] += blackjackGame["cardMap"][card][0];
+    }
+  } else {
+    activePlayer["score"] += blackjackGame["cardMap"][card];
+  }
+}
+
+function showScore(activePlayer) {
+  if (activePlayer["score"] > 21) {
+    document.querySelector(activePlayer["spanScore"]).textContent = "BUST!";
+    document.querySelector(activePlayer["spanScore"]).style.color = "red";
+  } else {
+    document.querySelector(activePlayer["spanScore"]).textContent =
+      activePlayer["score"];
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function dealerLogic() {
+  blackjackGame["isStand"] = true;
+  while (DEALER["score"] < 16 && blackjackGame["isStand"] === true) {
+    let card = randomCard();
+    showCard(card, DEALER);
+    updateScore(card, DEALER);
+    showScore(DEALER);
+    await sleep(1000);
+  }
+
+  if (DEALER["score"] > 15) {
+    blackjackGame["turnsOver"] = true;
+    let winner = computeWinner();
+    showResult(winner);
+  }
+}
+
+function computeWinner() {
+  let winner;
+  if (YOU["score"] <= 21) {
+    if (YOU["score"] > DEALER["score"] || DEALER["score"] > 21) {
+      // You Won!
+      blackjackGame["wins"]++;
+      winner = YOU;
+    } else if (YOU["score"] < DEALER["score"]) {
+      // You Lost!
+      blackjackGame["lossess"]++;
+      winner = DEALER;
+    } else if (YOU["score"] === DEALER["score"]) {
+      blackjackGame["drew"]++;
+      // You Drew!
+    }
+  } else if (YOU["score"] > 21 && DEALER["score"] <= 21) {
+    // You Lost!
+    blackjackGame["lossess"]++;
+    winner = DEALER;
+  } else if (YOU["score"] > 21 && DEALER["score"] > 21) {
+    // You Drew!
+    blackjackGame["drew"]++;
+  }
+  return winner;
+}
+
+function showResult(winner) {
+  if (blackjackGame["turnsOver"] === true) {
+    let message, messageColor;
+    if (winner == YOU) {
+      document.querySelector("#wins").textContent = blackjackGame["wins"];
+      message = "You Won!";
+      messageColor = "green";
+    } else if (winner === DEALER) {
+      document.querySelector("#lossess").textContent = blackjackGame["lossess"];
+      message = "You Lost!";
+      messageColor = "red";
+    } else {
+      document.querySelector("#drew").textContent = blackjackGame["drew"];
+      message = "You Drew!";
+      messageColor = "black";
+    }
+    document.querySelector("#blackjack-result").textContent = message;
+    document.querySelector("#blackjack-result").style.color = messageColor;
+  }
+}
+
+// Challenge 6 : Random User Generator
+const url = "https://randomuser.me/api/?results=10";
+fetch(url)
+  .then((response) => response.json())
+  .then((data) => {
+    let authors = data.results;
+    for (let i = 0; i < authors.length; i++) {
+      let firstname = authors[i].name.first;
+      let lastname = authors[i].name.last;
+      // console.log(firstname, lastname);
+      let imageUrl = authors[i].picture.large;
+      // console.log(imageUrl);
+      var div = document.createElement("div");
+      var img = document.createElement("img");
+      var p = document.createElement("p");
+      var paraContent = document.createTextNode(`${firstname} ${lastname} `);
+      img.src = imageUrl;
+      p.appendChild(paraContent);
+      div.appendChild(img);
+      div.appendChild(p);
+      let container = document.querySelector(".user-container");
+      container.appendChild(div);
+    }
+  });
